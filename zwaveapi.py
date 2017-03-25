@@ -1,8 +1,29 @@
+##################################################################
+#
+# ZWAVEAPI.PY
+#
+# This script provides access to the standard ZWaveAPI data tree.
+#
+# It can be run standalone, in which case it logs in, requests the
+# ZWaveAPI data tree and then prints out all the physical devices
+# with their device ids and vendor names.
+#
+# When imported into other scripts a call to
+# zwaveapi.get_zwaveapi_data() sends the request and returns the
+# response to the caller.
+#
+# NOTE: before making a call to get the data it is necessary to
+#       send a login request and provide the resulting cookie
+#       for subseqent API requests.
+#
+##################################################################
+
 import requests
 import json
 import login
+import secrets
 
-api = "http://"+login.myip+":8083/ZWaveAPI/"
+api = "http://"+secrets.myip+":8083/ZWaveAPI/"
 
 zwaveapi_data = api + "Data/0"
 
