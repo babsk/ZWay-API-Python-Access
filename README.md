@@ -18,6 +18,7 @@ file | comments
 **login.py**|function to send a login request and return the resulting cookie (required by all other requests)
 **zwaveapi.py**|definition of the **ZWaveAPI** and a function to access the data tree
 **trvs.py**|requests a list of devices and displays those with the type 'thermostat'
+**switch.py**|functions to get and set the status of devices that support commandClass 37 (binary switch)
 
 ## Custom API scripts
 The following scripts will not work with the standard ZWay server. They work with a custom addition to the Automation API accessible via:
