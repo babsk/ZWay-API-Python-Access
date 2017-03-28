@@ -36,6 +36,15 @@ file | comments
 **test.py**|miscellaneous testing
 **test_room_add.py**|experimental room adding code
 
+## AWS Lambda Function for the Alexa Smart Home Skill
+The Lambda Function is uploaded to Amazon Web Services and linked to my Smart Home Skill.
+This is purely a personal skill and is not publicly available.
+In order to upload it, it must be zipped with other dependencies including the requests library.
+
+file | comments
+-----|----------
+**lambda_function.py**|depends on the requests library which must be uploaded as part of the deployment package
+
 ## Further Information
 I have been successfully running various parts of my central heating system from a custom ZWay module since 2015.
 This is an ongoing project which I occasionally blog about at [Misadventures in Home Automation](http://kershawkids.blogspot.co.uk/)
