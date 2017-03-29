@@ -8,14 +8,13 @@
 #
 # It makes extensive use of my own additions to the ZWay API.
 #
-# Two devices are hard coded into device discovery:
+# One device is hard coded into device discovery:
 #
 # Hot Water Pump
-# Plug in Switch
 #
 # The other devices are the rooms (central heating zones) and
-# these are requested from the ZWay server during device
-# discovery.
+# binary switches, both of which are requested from the ZWay
+# server during device discovery.
 #
 # requests library must be provided in the package deployment as
 # it is not part of AWS lambda function environment
@@ -33,9 +32,6 @@ import boostduration
 import boostsp
 import switch
 
-pumpDeviceID = "device000"
-switchDeviceID = "device001"
-switchZWAYID = 33
 boostMode = 3
 
 # this is the main entry point and is passed smart home
@@ -62,13 +58,13 @@ def handleDiscovery(context, event):
         }
     switchActions = ["turnOn","turnOff"]
     roomActions = ["turnOn","turnOff","setTargetTemperature","setPercentage"]
-    waterPump = {
-                            "applianceId":pumpDeviceID,
+    binarySwitch = {
+                            "applianceId":"",
                             "manufacturerName":"yourManufacturerName",
                             "modelName":"model 01",
                             "version":"your software version number here.",
-                            "friendlyName":"Pump",
-                            "friendlyDescription":"hot water pump switch",
+                            "friendlyName":"",
+                            "friendlyDescription":"",
                             "isReachable":True,
                             "actions":switchActions,
                             "additionalApplianceDetails":{}
@@ -76,25 +72,29 @@ def handleDiscovery(context, event):
 
     if event['header']['name'] == 'DiscoverAppliancesRequest':
         discoveredAppliances = [];
-        # hard code the water pump
-        discoveredAppliances.insert (0,waterPump)
-        # hard code the switch
-        appliance = waterPump.copy()
-        appliance['applianceId'] = switchZWAYID
-        appliance['friendlyName'] = "kitchen lamp"
-        appliance['friendlyDescription'] = "plug in switch"
-        discoveredAppliances.insert (1,appliance)
-        # the rest of the appliances are rooms which we need to request
+        
+        # get the switches
         cookie = login.send()
+        s = switch.get_binary_switches(cookie)
+        for i in range (0,len(s)):
+            appliance = binarySwitch.copy()
+            appliance['applianceId'] = s[i]['id']
+            appliance['friendlyName'] = s[i]['metrics']['title']
+            appliance['friendlyDescription'] = s[i]['deviceType']
+            appliance['additionalApplianceDetails'] = {'type':s[i]['deviceType']}
+            discoveredAppliances.insert (len(discoveredAppliances),appliance)
+                        
+        # the rest of the appliances are rooms which we need to request
+
         room_list = rooms.get_rooms(cookie).json()['data']
 
         for i in range (0,len(room_list)):
-            appliance = waterPump.copy()
+            appliance = binarySwitch.copy()
             appliance['applianceId'] = room_list[i]['id']
             appliance['friendlyName'] = str(room_list[i]['title'])
             appliance['friendlyDescription'] = "boost heating"
             appliance['actions'] = roomActions
-            discoveredAppliances.insert(i+2,appliance)        
+            discoveredAppliances.insert(len(discoveredAppliances),appliance)        
         
         payload = {"discoveredAppliances": discoveredAppliances}
         
@@ -113,36 +113,27 @@ def handleControl(context, event):
     device_id = event['payload']['appliance']['applianceId']
     message_id = event['header']['messageId']
     control_type = event['header']['name']
+    additional_details = event['payload']['appliance']['additionalApplianceDetails']
+    if "type" in additional_details:
+        device_type = additional_details['type']
+    else:
+        device_type = ""
     headerTemplate = {
                 "namespace":"Alexa.ConnectedHome.Control",
                 "payloadVersion":"2",
                 "messageId": message_id
             }
-    
-    # is it a pump request
-    if device_id == pumpDeviceID:
-        if (control_type == 'TurnOnRequest') or (control_type == 'TurnOffRequest'):
-            cookie = login.send()    
-            if control_type == 'TurnOnRequest':
-                pumpstatus.set_pumpstatus(cookie,1,{"data":"true"})
-                headerTemplate['name'] = "TurnOnConfirmation"
-                
-            if event['header']['name'] == 'TurnOffRequest':
-                pumpstatus.set_pumpstatus(cookie,1,{"data":"false"})
-                headerTemplate['name'] = "TurnOffConfirmation"
-            header = headerTemplate
-            payload = { }
 
     # is it a switch request
-    elif device_id == switchDeviceID:
+    if device_type == 'switchBinary':
         if (control_type == 'TurnOnRequest') or (control_type == 'TurnOffRequest'):
             cookie = login.send()    
             if control_type == 'TurnOnRequest':
-                switch.set_switch_status(cookie,switchZWAYID,"true")
+                switch.set_switch_status(cookie,device_id,"on")
                 headerTemplate['name'] = "TurnOnConfirmation"
                 
             if event['header']['name'] == 'TurnOffRequest':
-                switch.set_switch_status(cookie,switchZWAYID,"false")
+                switch.set_switch_status(cookie,device_id,"off")
                 headerTemplate['name'] = "TurnOffConfirmation"
             header = headerTemplate
             payload = { }
@@ -192,4 +183,4 @@ def handleControl(context, event):
 
                                  
 
-    return { 'header': header, 'payload': payload }  
+    return { 'header': header, 'payload': payload } 
