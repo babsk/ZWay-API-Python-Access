@@ -8,11 +8,9 @@
 #
 # It makes extensive use of my own additions to the ZWay API.
 #
-# One device is hard coded into device discovery:
+# Devices are automatically discovered.
 #
-# Hot Water Pump
-#
-# The other devices are the rooms (central heating zones) and
+# The devices are the rooms (central heating zones) and
 # binary switches, both of which are requested from the ZWay
 # server during device discovery.
 #
@@ -44,6 +42,9 @@ def lambda_handler(event, context):
 
     elif event['header']['namespace'] == 'Alexa.ConnectedHome.Control':
         return handleControl(context, event)
+        
+    elif event['header']['namespace'] == 'Alexa.ConnectedHome.Query':
+        return handleQuery(context, event)
 
 # this handles Discover directives from Alexa
 # it returns 'devices' that can be managed by the Smarthome Skill
@@ -57,7 +58,7 @@ def handleDiscovery(context, event):
         "payloadVersion": "2"
         }
     switchActions = ["turnOn","turnOff"]
-    roomActions = ["turnOn","turnOff","setTargetTemperature","setPercentage"]
+    roomActions = ["turnOn","turnOff","setTargetTemperature","setPercentage","getTargetTemperature","getTemperatureReading"]
     binarySwitch = {
                             "applianceId":"",
                             "manufacturerName":"yourManufacturerName",
@@ -104,7 +105,7 @@ def handleDiscovery(context, event):
 # it determines which device to control from the id
 # directives are handled as follows:
 #
-# TurnOnRequest / TurnOffRequest - boost on / boost off (TODO: revert to previous state)
+# TurnOnRequest / TurnOffRequest - boost on / boost off
 # SetTargetTemperatureRequest - set boost SP
 # SetPercentageRequest - TODO - use for boost time?
 def handleControl(context, event):
@@ -179,6 +180,59 @@ def handleControl(context, event):
         mode.set_mode(cookie,int(device_id),{'data':boostMode})
         headerTemplate['name'] = "SetPercentageConfirmation"
         payload = {}
+        header = headerTemplate
+        
+    return { 'header': header, 'payload': payload }
+
+# this handles Query directives from Alexa
+# it determines which device to query from the id
+# directives are handled as follows:
+#
+# GetTargetTemperatureRequest
+# GetTemperatureReadingRequest  
+def handleQuery(context, event):
+    payload = ''
+    header = ''
+    device_id = event['payload']['appliance']['applianceId']
+    message_id = event['header']['messageId']
+    query_type = event['header']['name']
+
+    headerTemplate = {
+                "namespace":"Alexa.ConnectedHome.Query",
+                "payloadVersion":"2",
+                "messageId": message_id
+            }
+
+    # assuming this is a room request, but which type
+    if query_type == 'GetTargetTemperatureRequest':
+        # get set point 
+        cookie = login.send()
+        setPoint = 0.0
+        room_list = rooms.get_rooms(cookie).json()['data']
+        for i in range (0,len(room_list)):
+            if room_list[i]['id'] == int(device_id):
+                setPoint = room_list[i]['desiredTemp']
+        
+        headerTemplate['name'] = "GetTargetTemperatureResponse"
+
+        payload = {
+                    "targetTemperature":{"value":setPoint},
+                    "temperatureMode":{"value":"CUSTOM"}}
+        header = headerTemplate
+        
+    elif query_type == 'GetTemperatureReadingRequest':
+        # get set point 
+        cookie = login.send()
+        currentTemp = 0.0
+        room_list = rooms.get_rooms(cookie).json()['data']
+        for i in range (0,len(room_list)):
+            if room_list[i]['id'] == int(device_id):
+                currentTemp = room_list[i]['currentTemp']
+        
+        headerTemplate['name'] = "GetTemperatureReadingResponse"
+
+        payload = {
+                    "temperatureReading":{"value":currentTemp}}
         header = headerTemplate
 
                                  
