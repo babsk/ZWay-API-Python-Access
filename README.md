@@ -48,4 +48,4 @@ file | comments
 ## Further Information
 I have been successfully running various parts of my central heating system from a custom ZWay module since 2015.
 This is an ongoing project which I occasionally blog about at [Misadventures in Home Automation](http://kershawkids.blogspot.co.uk/)
-These python scripts have been uploaded for my own personal use and are for the most part only relevant for use with my custom ZWay server module (not available via github as yet). They were never intended for public use, but the standard scripts may be of use to anyone starting out with ZWay and as an alternative to the **curl** scripts provided in the ZWay developer documentation.
+These python scripts have been uploaded for my own personal use and are for the most part only relevant for use with [my custom ZWay server module](https://github.com/babsk/ZWay-Heating-Module). They were never intended for public use, but the standard scripts may be of use to anyone starting out with ZWay and as an alternative to the **curl** scripts provided in the ZWay developer documentation.
